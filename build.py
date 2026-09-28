@@ -26,20 +26,23 @@ def article_citation(post, site):
     authors = [name.rstrip("*") for name in post["authors"]]
     published = date.fromisoformat(post["date"])
     url = site["url"].rstrip("/") + f'/posts/{post["slug"]}/'
-    fields = [
-        ("author", " and ".join(authors)),
+    fields = []
+    if authors:
+        fields.append(("author", " and ".join(authors)))
+    fields.extend([
         ("title", "{" + post["title"] + "}"),
         ("year", str(published.year)),
         ("month", published.strftime("%B")),
         ("day", str(published.day)),
         ("url", url),
-    ]
+    ])
     bibtex = "@misc{" + post["citation_key"] + ",\n" + ",\n".join(
         "  " + key + " = {" + value + "}" for key, value in fields
     ) + "\n}"
+    author_prefix = esc(", ".join(authors)) + ". " if authors else ""
     return f'''<section class="article-citation" aria-labelledby="citation-title" data-citation>
       <div class="citation-heading"><h3 id="citation-title">Cite this article</h3><button type="button" class="citation-copy" data-copy-citation>Copy BibTeX</button></div>
-      <p class="citation-reference">{esc(', '.join(authors))}. {esc(post['title'])}. <em>{esc(site['name'])}</em>, {esc(post['date_label'])}. <a href="{esc(url)}">Article link ↗</a></p>
+      <p class="citation-reference">{author_prefix}{esc(post['title'])}. <em>{esc(site['name'])}</em>, {esc(post['date_label'])}. <a href="{esc(url)}">Article link ↗</a></p>
       <pre tabindex="0" aria-label="BibTeX citation"><code data-citation-text>{esc(bibtex)}</code></pre>
       <span class="citation-status" data-citation-status role="status" aria-live="polite"></span>
     </section>'''
@@ -70,14 +73,29 @@ def build(base_path="", output_dir=None):
             raise ValueError(f"Missing image: {item['image']}")
         if item.get("video") and not (ROOT / "assets" / item["video"]).is_file():
             raise ValueError(f"Missing video: {item['video']}")
+        if item.get("home_video") and not (ROOT / "assets" / item["home_video"]).is_file():
+            raise ValueError(f"Missing home video: {item['home_video']}")
+        if item.get("home_poster") and not (ROOT / "assets" / item["home_poster"]).is_file():
+            raise ValueError(f"Missing home poster: {item['home_poster']}")
 
     def report(path):
+        if path.startswith("/"):
+            return path
         if path.startswith(("https://", "http://")):
             return path
         return site["physical_url"] if path == "external-physical" else site["results_url"].rstrip("/") + "/" + path
 
     def external(label, path, cls="text-link"):
-        return f'<a class="{cls}" href="{esc(report(path))}" target="_blank" rel="noopener noreferrer">{esc(label)} <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>'
+        destination = report(path)
+        if destination.startswith("/"):
+            return f'<a class="{cls}" href="{esc(destination)}">{esc(label)} <span aria-hidden="true">↗</span></a>'
+        return f'<a class="{cls}" href="{esc(destination)}" target="_blank" rel="noopener noreferrer">{esc(label)} <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>'
+
+    def project_report_link(project):
+        destination = report(project.get("article_results_path", project["results_path"]))
+        external_attrs = ' target="_blank" rel="noopener noreferrer"' if not destination.startswith("/") else ""
+        external_note = '<span class="sr-only"> (opens in a new tab)</span>' if external_attrs else ""
+        return f'<a class="aside-project" href="{esc(destination)}"{external_attrs}><span class="eyebrow">{esc(project["environment"])}</span>{esc(project["short_name"])} <span aria-hidden="true">↗</span>{external_note}</a>'
 
     def photo(item, cls="", loading="lazy"):
         return f'<img class="{cls}" src="/assets/{esc(item["image"])}" alt="{esc(item["image_alt"])}" loading="{loading}" decoding="async">'
@@ -85,18 +103,27 @@ def build(base_path="", output_dir=None):
     def post_meta(p):
         return f'<div class="meta"><span>{esc(p["category"])}</span><span class="dot">·</span><time datetime="{p["date"]}">{p["date_label"]}</time><span class="dot">·</span><span>Est. {p["reading_time"]} min read</span></div>'
 
-    def video(p):
-        return f'<video controls muted playsinline preload="metadata" poster="/assets/{esc(p["image"])}" aria-label="{esc(p["video_label"])}"><source src="/assets/{esc(p["video"])}" type="video/mp4">Your browser cannot play this video. <a href="/assets/{esc(p["video"])}">Open the recording</a>.</video>'
+    def video(p, prefix=""):
+        source = p[prefix + "video"]
+        poster = p.get(prefix + "poster", p["image"])
+        label = p[prefix + "video_label"]
+        return f'<video controls muted playsinline preload="metadata" poster="/assets/{esc(poster)}" aria-label="{esc(label)}"><source src="/assets/{esc(source)}" type="video/mp4">Your browser cannot play this video. <a href="/assets/{esc(source)}">Open the recording</a>.</video>'
 
-    def post_card(p, filterable=False):
+    def post_card(p, filterable=False, home=False):
         attrs = ""
         if filterable:
             searchable = " ".join([p["title"], p["subtitle"], p["excerpt"], p["category"]] + [by_project[s]["short_name"] for s in p["projects"]])
             attrs = f' data-post data-category="{esc(p["category"])}" data-search="{esc(searchable.lower())}" data-featured="{str(p.get("featured", False)).lower()}"'
-        media = f'<figure class="card-video">{video(p)}<figcaption>{esc(p["video_caption"])}</figcaption></figure>' if p.get("video") else f'<a class="card-image {esc(p["image_style"])}" href="/posts/{p["slug"]}/" aria-label="Read {esc(p["title"])}">{photo(p)}<span class="image-arrow" aria-hidden="true">↗</span></a>'
+        if home and p.get("home_video"):
+            media = f'<figure class="card-video">{video(p, "home_")}<figcaption>{esc(p["home_video_caption"])}</figcaption></figure>'
+        elif p.get("video"):
+            media = f'<figure class="card-video">{video(p)}<figcaption>{esc(p["video_caption"])}</figcaption></figure>'
+        else:
+            media = f'<a class="card-image {esc(p["image_style"])}" href="/posts/{p["slug"]}/" aria-label="Read {esc(p["title"])}">{photo(p)}<span class="image-arrow" aria-hidden="true">↗</span></a>'
+        results_link = external('Interactive Webpage', p['results_path']) if p.get("promote_results", True) else ""
         return f'''<article class="post-card"{attrs}>
           {media}
-          <div class="blog-card-copy">{post_meta(p)}<h3><a href="/posts/{p['slug']}/">{esc(p['title'])}</a></h3><p>{esc(p['excerpt'])}</p><div class="blog-card-actions"><a class="text-link" href="/posts/{p['slug']}/">Read Blog <span aria-hidden="true">↗</span></a>{external('Interactive Webpage', p['results_path'])}</div></div>
+          <div class="blog-card-copy">{post_meta(p)}<h3><a href="/posts/{p['slug']}/">{esc(p['title'])}</a></h3><p>{esc(p['excerpt'])}</p><div class="blog-card-actions"><a class="text-link" href="/posts/{p['slug']}/">Read Blog <span aria-hidden="true">↗</span></a>{results_link}</div></div>
         </article>'''
 
     def project_card(p, compact=False):
@@ -126,7 +153,7 @@ def build(base_path="", output_dir=None):
       <section class="journal-intro wrap"><div class="eyebrow"><span class="live-dot"></span> Agent × Robot</div>
         <div class="intro-row"><h1>Robot using Agent<br><em>in the physical world.</em></h1></div>
       </section>
-      <section class="wrap home-blog-grid" aria-label="Latest blogs">{''.join(post_card(p) for p in posts)}</section>
+      <section class="wrap home-blog-grid" aria-label="Latest blogs">{''.join(post_card(p, home=True) for p in posts)}</section>
     ''', "home", "home-page")
 
     page("blogs/index.html", "Blogs", "Research updates and lessons from Agent × Robot experiments.", f'''
@@ -149,6 +176,18 @@ def build(base_path="", output_dir=None):
         related = [post for post in posts if p["slug"] in post["projects"]]
         evidence = ''.join(f'<li>{external(e["label"], e["path"])}</li>' for e in p["evidence"])
         related_section = f'<section class="wrap related"><div class="section-heading"><h2>Blogs from this project</h2><a class="text-link" href="/blogs/">All blogs ↗</a></div><div class="post-grid">{"".join(post_card(post) for post in related)}</div></section>' if related else ''
+        custom_page = ROOT / "content" / "project-pages" / f'{p["slug"]}.html'
+        if custom_page.is_file():
+            body = custom_page.read_text().replace("{{RELATED_SECTION}}", related_section)
+            page(
+                f"projects/{p['slug']}/index.html",
+                p["name"],
+                p["description"],
+                body,
+                "projects",
+                "semantic-project-page" if p["slug"] == "robotwin-semantic-success" else "",
+            )
+            continue
         page(f"projects/{p['slug']}/index.html", p["name"], p["description"], f'''
           <section class="wrap project-intro"><a class="back-link" href="/projects/">← All projects</a><div class="eyebrow">Project {p['number']} / {esc(p['environment'])}</div><h1>{esc(p['name'])}</h1><p class="lede">{esc(p['description'])}</p><div class="project-actions">{external('Open interactive results', p['results_path'], 'button dark')}<span class="mode">{esc(p['mode'])}</span></div></section>
           <section class="wrap project-overview"><div class="project-hero-image">{photo(p, loading='eager')}</div><div class="project-overview-copy"><div class="eyebrow">The experiment</div><h2>{esc(p['short_name'])}</h2><p>{esc(p['summary'])}</p><div class="metrics">{stats}</div></div></section>
@@ -163,13 +202,17 @@ def build(base_path="", output_dir=None):
             body = body.replace("{{ARTICLE_VIDEO}}", article_media) if "{{ARTICLE_VIDEO}}" in body else article_media + body
         headings = re.findall(r'<h2 id="([^"]+)">(.*?)</h2>', body)
         toc = ''.join(f'<a href="#{esc(anchor)}">{title}</a>' for anchor, title in headings)
-        report_links = ''.join(f'<a class="aside-project" href="{esc(report(by_project[slug]["results_path"]))}" target="_blank" rel="noopener noreferrer"><span class="eyebrow">{esc(by_project[slug]["environment"])}</span>{esc(by_project[slug]["short_name"])} <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>' for slug in p["projects"])
+        report_links = ''.join(project_report_link(by_project[slug]) for slug in p["projects"])
         related = sorted((post for post in posts if post["slug"] != p["slug"]), key=lambda post: -len(set(post["projects"]) & set(p["projects"])))[:2]
         related_section = f'<section class="wrap related"><div class="section-heading"><h2>Keep exploring</h2><a class="text-link" href="/blogs/">All blogs ↗</a></div><div class="post-grid">{"".join(post_card(post) for post in related)}</div></section>' if related else ''
         author_note = '<p class="author-note">' + esc(p['author_note']) + '</p>' if p.get('author_note') else ''
+        promote_results = p.get("promote_results", True)
+        header_action = f'<div class="article-header-actions">{external("Interactive Webpage", p["results_path"], "button dark")}</div>' if promote_results else ""
+        article_cta = f'<div class="article-cta"><div class="eyebrow">From the story to the evidence</div><h3>Inspect the experiment.</h3><p>Explore the task-level results, methods, and recordings.</p>{external("Open interactive report", p["results_path"], "button dark")}</div>' if promote_results else ""
+        report_section = f'<div class="eyebrow">Interactive report</div>{report_links}' if promote_results else ""
         page(f"posts/{p['slug']}/index.html", p["title"], p["excerpt"], f'''
-          <header class="wrap article-header"><a class="back-link" href="/blogs/">← All blogs</a>{post_meta(p)}<h1>{esc(p['title'])}</h1><p class="lede">{esc(p['subtitle'])}</p><div class="article-header-actions">{external("Interactive Webpage", p["results_path"], "button dark")}</div><div class="byline"><div class="author-byline"><span class="author-label">Authors</span><div class="author-list">{''.join('<span class="author-name">' + esc(author) + '</span>' for author in p.get('authors', [site['name']]))}</div>{author_note}</div><button class="copy-link" data-copy>Copy link <span aria-hidden="true">↗</span></button><span class="sr-only" data-copy-status aria-live="polite"></span></div></header>
-          <div class="wrap article-layout"><article class="prose">{body}<div class="article-cta"><div class="eyebrow">From the story to the evidence</div><h3>Inspect the experiment.</h3><p>Explore the task-level results, methods, and recordings.</p>{external('Open interactive report', p['results_path'], 'button dark')}</div>{article_citation(p, site)}</article><aside class="article-aside"><div class="sticky"><div class="eyebrow">In this article</div><nav class="toc" aria-label="Table of contents">{toc}</nav><div class="eyebrow">Interactive report</div>{report_links}</div></aside></div>
+          <header class="wrap article-header"><a class="back-link" href="/blogs/">← All blogs</a>{post_meta(p)}<h1>{esc(p['title'])}</h1><p class="lede">{esc(p['subtitle'])}</p>{header_action}<div class="byline"><div class="author-byline"><span class="author-label">Authors</span><div class="author-list">{''.join('<span class="author-name">' + esc(author) + '</span>' for author in p.get('authors', [site['name']]))}</div>{author_note}</div><button class="copy-link" data-copy>Copy link <span aria-hidden="true">↗</span></button><span class="sr-only" data-copy-status aria-live="polite"></span></div></header>
+          <div class="wrap article-layout"><article class="prose">{body}{article_cta}{article_citation(p, site)}</article><aside class="article-aside"><div class="sticky"><div class="eyebrow">In this article</div><nav class="toc" aria-label="Table of contents">{toc}</nav>{report_section}</div></aside></div>
           {related_section}
         ''', "blogs", "article-page")
 

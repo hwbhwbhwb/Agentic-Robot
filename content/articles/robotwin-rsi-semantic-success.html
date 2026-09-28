@@ -1,0 +1,247 @@
+<h2 id="summary">1. From Reaching a Target to Completing the Task</h2>
+<p>RoboTwin 2.0's original success criteria, which we call Origin-SR, preserve compatibility with existing expert programs, and VLA/WAM data. They do not always express the natural-language task itself. Many original <code>check_success()</code> implementations test whether an object center, functional point, joint angle, or height enters a threshold region. They may omit the acting gripper, orientation, contact, release, action order, or stable hold required by the instruction, while adding an expert-specific endpoint that the instruction never mentions.</p>
+<div class="semantic-hero-grid">
+  <div class="semantic-hero-card origin"><span class="eyebrow">Origin-SR</span><strong>164</strong><span>successful seeds / 1,000</span><small>The native RoboTwin checker, retained for historical comparability.</small></div>
+  <div class="semantic-hero-card semantic"><span class="eyebrow">Semantic-SR</span><strong>182</strong><span>successful seeds / 1,000</span><small>Language-aligned physical, role, and temporal predicates.</small></div>
+  <div class="semantic-hero-card both"><span class="eyebrow">Both</span><strong>124</strong><span>successful under both definitions</span><small>The intersection of the two evaluators on the same rollouts.</small></div>
+</div>
+<p class="summary-panel-note"><strong>Semantic has 18 more successful seeds, but the policy did not become stronger.</strong> The same frozen rollouts were read by two different success definitions. Some Origin successes are semantic false positives; some Semantic successes expose false negatives caused by expert-specific endpoints.</p>
+<p>This distinction matters for zero-shot agents. VLA/WAM data collection and fine-tuning can legitimately treat an expert endpoint as part of the data protocol. A zero-shot agent should not have to reproduce one expert route if another physically valid behavior satisfies the instruction. We therefore report Origin-SR and Semantic-SR side by side: the first preserves comparability, while the second asks whether the language-specified task was actually completed.</p>
+<h2 id="rsi">2. RSI: Develop the Policy, Then Freeze the Evaluation</h2>
+<p>RSI places the task instruction, simulation environment, generated controller, and evaluator in one development loop. A coding agent writes executable control code, runs it in simulation, reads the resulting success state or diagnostics, and revises the policy. The loop ends when a policy artifact is selected or the development budget is exhausted.</p>
+<figure class="rsi-flow-map" data-rsi-flow>
+  <div class="rsi-flow-scroll" tabindex="0" role="region" aria-label="RSI development and evaluation graph; scroll horizontally on small screens">
+    <svg class="rsi-flow-svg" viewBox="0 0 780 334" xmlns="http://www.w3.org/2000/svg" role="group" aria-labelledby="rsi-flow-title rsi-flow-description">
+      <title id="rsi-flow-title">RSI policy development and frozen-policy evaluation</title>
+      <desc id="rsi-flow-description">Generate controller code, iterate with simulation feedback, freeze one selected policy artifact, then run Origin and Semantic evaluators on the same frozen rollouts. Feedback can revise the policy only before the freeze gate. Select a stage for details.</desc>
+      <defs><marker id="rsi-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1 L8 5 L1 9" fill="none" stroke="currentColor" stroke-width="1.5"/></marker></defs>
+      <rect class="rsi-flow-zone development" x="6" y="31" width="374" height="224"/><rect class="rsi-flow-zone evaluation" x="586" y="31" width="188" height="224"/>
+      <text class="rsi-flow-zone-label" x="17" y="51">POLICY DEVELOPMENT</text><text class="rsi-flow-zone-label" x="597" y="51">FROZEN EVALUATION</text>
+      <g class="rsi-flow-edges" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#rsi-arrow)"><path d="M185 143 H202"/><path d="M380 143 H397"/><path d="M575 143 H592"/><path d="M682 215 V249"/><path class="rsi-flow-return" d="M292 215 V267 Q292 276 283 276 H106 Q97 276 97 267 V215"/></g>
+      <line class="rsi-freeze-line" x1="580" y1="31" x2="580" y2="255"/><text class="rsi-freeze-label" x="570" y="246" text-anchor="end">FREEZE GATE</text>
+      <g class="rsi-flow-node selected" data-rsi-stage="generate" role="button" tabindex="0" aria-pressed="true" aria-controls="rsi-flow-detail" aria-label="Generate code: translate the instruction and environment interface into executable controller code"><rect x="10" y="70" width="175" height="145"/><text class="rsi-flow-step" x="25" y="94">01 / GENERATE</text><text class="rsi-flow-node-title" x="25" y="122">Generate controller</text><text class="rsi-flow-item" x="25" y="151">Task instruction</text><text class="rsi-flow-item" x="25" y="172">Environment interface</text><text class="rsi-flow-item" x="25" y="193">Executable policy code</text></g>
+      <g class="rsi-flow-node" data-rsi-stage="iterate" role="button" tabindex="0" aria-pressed="false" aria-controls="rsi-flow-detail" aria-label="Iterate with feedback: run in simulation, inspect diagnostics, and revise within the development budget"><rect x="205" y="70" width="175" height="145"/><text class="rsi-flow-step" x="220" y="94">02 / ITERATE</text><text class="rsi-flow-node-title" x="220" y="122">Learn from feedback</text><text class="rsi-flow-item" x="220" y="151">Simulation rollout</text><text class="rsi-flow-item" x="220" y="172">Success + diagnostics</text><text class="rsi-flow-item" x="220" y="193">Revise within budget</text></g>
+      <g class="rsi-flow-node freeze" data-rsi-stage="freeze" role="button" tabindex="0" aria-pressed="false" aria-controls="rsi-flow-detail" aria-label="Freeze one artifact: select the policy, stop coding-agent edits, and lock the evaluation input"><rect x="400" y="70" width="175" height="145"/><text class="rsi-flow-step" x="415" y="94">03 / FREEZE</text><text class="rsi-flow-node-title" x="415" y="122">Select one artifact</text><text class="rsi-flow-item" x="415" y="151">Choose policy</text><text class="rsi-flow-item" x="415" y="172">Stop agent edits</text><text class="rsi-flow-item" x="415" y="193">Lock evaluation input</text></g>
+      <g class="rsi-flow-node evaluate" data-rsi-stage="evaluate" role="button" tabindex="0" aria-pressed="false" aria-controls="rsi-flow-detail" aria-label="Evaluate frozen policy: use new seeds and run Origin and Semantic evaluators on the same rollout"><rect x="595" y="70" width="175" height="145"/><text class="rsi-flow-step" x="610" y="94">04 / EVALUATE</text><text class="rsi-flow-node-title" x="610" y="122">Run both evaluators</text><text class="rsi-flow-item" x="610" y="151">New evaluation seeds</text><text class="rsi-flow-item" x="610" y="172">Same frozen rollout</text><text class="rsi-flow-item" x="610" y="193">Origin-SR + Semantic-SR</text></g>
+      <rect class="rsi-flow-output" x="595" y="251" width="175" height="42"/><text class="rsi-flow-output-label" x="682" y="276" text-anchor="middle">Paired evaluator results</text>
+      <text class="rsi-flow-loop-label" x="194" y="300" text-anchor="middle">Feedback can revise code during development</text>
+    </svg>
+  </div>
+  <div class="rsi-flow-detail" id="rsi-flow-detail" aria-live="polite" aria-atomic="true">
+    <span data-rsi-index>01 / Generate</span>
+    <strong data-rsi-title>Translate the task into executable policy code</strong>
+    <p data-rsi-description>The coding agent receives the instruction and simulation interface, then produces a controller that can act in the environment. This begins policy development; it is not yet the frozen evaluation.</p>
+    <div class="rsi-flow-facts" data-rsi-facts><span>Task instruction</span><span>Environment interface</span><span>Controller code</span></div>
+  </div>
+  <figcaption>The development loop ends at the freeze gate. After that boundary, one selected artifact runs on new seeds without coding-agent intervention, and both evaluators read the same rollout.</figcaption>
+</figure>
+<p>Development and final evaluation are separate. During development, the agent can inspect feedback and modify code. The selected policy is then frozen, executed on new seeds without further coding-agent intervention, and evaluated with both Origin-SR and Semantic-SR on the same rollout. “RSI found a usable controller” and “the frozen controller completed this seed” are different claims, so accepted development cases cannot be reported as the final success rate.</p>
+<p>RoboDojo's offline-policy framing offers a useful parallel: evaluator feedback helps form a policy during development, then the frozen policy runs in batches without the coding agent. RoboTwin and RoboDojo differ in tasks, perception, and control, but both require a clean boundary between policy development and frozen-policy evaluation.</p>
+
+<h2 id="why">3. Why Zero-Shot Evaluation Needs a Semantic Fix</h2>
+<h3>3.1 The valid scope of the original checker</h3>
+<p>Many RoboTwin 2.0 tasks were designed for VLA/WAM data collection, fine-tuning, and evaluation. The <a href="https://arxiv.org/abs/2506.18088" target="_blank" rel="noopener noreferrer">RoboTwin 2.0 paper</a> presents the project as both a scalable data generator and a benchmark, with an expert-data synthesis pipeline that uses multimodal language models and simulation-in-the-loop refinement to generate task-level execution code. In that setting, predefined expert programs, target poses, and endpoint regions are part of the data protocol. Measuring whether a model reproduces the same endpoint is reasonable, and retaining the native checker keeps new results comparable with prior RoboTwin VLA/WAM evaluation.</p>
+<p>The mismatch appears when the same checker is applied directly to a zero-shot agent. Such an agent interprets language and searches for a feasible action sequence instead of imitating fixed expert actions. An implicit waypoint, positional offset, or terminal pose should not become mandatory unless the instruction or task specification requires it.</p>
+<p>This concern is also visible in public discussion around the official repository. <a href="https://github.com/RoboTwin-Platform/RoboTwin/issues/475" target="_blank" rel="noopener noreferrer">RoboTwin Issue #475</a> documents instruction templates that conflict with <code>play_once()</code> in temporal order, concurrency, or arm assignment. It also notes that final-state success checks can miss whether the policy followed the instruction literally. <a href="https://github.com/RoboTwin-Platform/RoboTwin/issues/493" target="_blank" rel="noopener noreferrer">Issue #493</a> identifies a different failure mode using <code>adjust_bottle</code>: evaluation can stop when a position or height threshold is first crossed, without confirming that the resulting state remains physically valid. Its proposed stable-success mode would continue simulation for a hold window and optionally inspect velocity, gripper state, contact, and workspace bounds. The first issue concerns language-to-trajectory alignment; the second concerns temporal and physical validity. Together they show why a final endpoint alone is insufficient for zero-shot language-following evaluation.</p>
+<p><a href="https://github.com/robbyant-research/Zero-WAM/blob/main/INSTALL.md#zero-wam-evaluation-protocol" target="_blank" rel="noopener noreferrer">Zero-WAM provides a concrete engineering precedent</a>. For unseen-task generalization, it revises the RoboTwin criteria for <code>move_stapler_pad</code> and <code>stamp_seal</code>. The former requires the released stapler to lie within and physically contact the pad regardless of yaw; the latter expands the target-plane tolerance from 1 cm to 3 cm. Zero-WAM also preserves the upstream task files for standard in-domain RoboTwin evaluation. This does not establish a complete semantic evaluator for all 50 tasks, but it supports the protocol used here: keep Origin-SR for comparability and report a separate language-aligned metric for zero-shot behavior.</p>
+
+<h3>3.2 <code>adjust_bottle</code>: position is not the task</h3>
+<p>The instruction asks the robot to pick up the bottle with the correct arm and keep its head pointing upward. The original checker primarily reads the bottle's functional point:</p>
+<figure class="code-card predicate-logic-card" aria-labelledby="origin-predicate-title">
+  <figcaption id="origin-predicate-title"><span>Origin success predicate</span><code class="code-task">adjust_bottle</code></figcaption>
+  <div class="predicate-logic" aria-label="The bottle height must exceed 0.9 meters, and the x threshold depends on qpose_tag.">
+    <div class="predicate-gate"><span>Shared height gate</span><code><b>z</b> &gt; <strong>0.9</strong></code></div>
+    <div class="predicate-and" aria-hidden="true"><span>and</span></div>
+    <div class="predicate-branches" role="group" aria-label="Position branch selected by qpose_tag">
+      <div class="predicate-branch left"><span><code>qpose_tag == 0</code></span><strong><code>x &lt; -0.15</code></strong><small>Left-side endpoint</small></div>
+      <span class="predicate-or" aria-hidden="true">or</span>
+      <div class="predicate-branch right"><span><code>qpose_tag == 1</code></span><strong><code>x &gt; 0.15</code></strong><small>Right-side endpoint</small></div>
+    </div>
+  </div>
+</figure>
+<p>It does not verify bottle-head orientation, contact by the correct gripper, continued support, or sustained stability. It therefore measures whether the bottle reaches the expert program's elevated lateral region more directly than whether the instruction was completed.</p>
+<table class="compare-table"><thead><tr><th>Physical behavior</th><th>Language verdict</th><th>Possible Origin verdict</th></tr></thead><tbody>
+  <tr><td>The bottle is lifted vertically, held upright and stable, but does not cross the fixed x threshold.</td><td>Success</td><td>Failure: semantic false negative</td></tr>
+  <tr><td>The bottle reaches the x/z target while nearly horizontal.</td><td>Failure</td><td>Success: semantic false positive</td></tr>
+  <tr><td>The wrong arm pushes the bottle into the threshold region.</td><td>Failure</td><td>The actor may not be identified.</td></tr>
+  <tr><td>The bottle briefly crosses the threshold and then falls.</td><td>Failure</td><td>Success may already be latched.</td></tr>
+</tbody></table>
+<p>The predicates are neither equivalent nor related by simple containment: <code>Origin ≈ side-threshold ∧ height-threshold</code>, while <code>Semantic ≈ picked-up ∧ upright ∧ correct-arm ∧ contact ∧ stable-hold</code>.</p>
+
+<h3>3.3 Two ways to resolve the mismatch</h3>
+<div class="route-grid">
+  <div><span class="eyebrow">Route A</span><h3>Adapt the prompt to the checker</h3><p>Write the checker's endpoint, position, orientation, and action sequence into the instruction. This preserves the original evaluator with little implementation change, but risks turning a natural-language task into a checker specification.</p></div>
+  <div><span class="eyebrow">Route B</span><h3>Align the checker with the prompt</h3><p>Keep the task language and evaluate physical ground truth, object relationships, contact, and the required trajectory history. This is the route used for Semantic-SR, while Origin-SR remains available for comparison.</p></div>
+</div>
+<p><strong>Semantic-SR is a complementary metric, not a renamed official RoboTwin success rate.</strong> Origin-SR preserves historical and data-protocol comparability; Semantic-SR evaluates whether a zero-shot policy completed the language task through a reasonable physical process.</p>
+
+<h2 id="method">4. What Semantic Success Checks</h2>
+<p>A typical Origin predicate asks whether a point entered a position or height window, sometimes combined with a gripper or joint condition. Semantic decomposes the instruction into the subset of history, role, geometry, physics, end-state, temporal, and safety predicates that the task actually needs.</p>
+<div class="predicate-grid">
+  <div><b>H</b><span>History</span><small>Order of grasp, lift, release, handover, press, pour, or shake events.</small></div>
+  <div><b>R</b><span>Role</span><small>Object identity, correct arm-to-object mapping, and non-duplicated objects.</small></div>
+  <div><b>G</b><span>Geometry</span><small>Object-local geometry, AABB or footprint, relative pose, coverage, and clearance.</small></div>
+  <div><b>P</b><span>Physics</span><small>Actual contact, load bearing, table clearance, and support relationships.</small></div>
+  <div><b>T</b><span>Temporal</span><small>Sustained conditions, velocity limits, synchronization, and pose drift.</small></div>
+  <div><b>S</b><span>Safety</span><small>Workspace bounds, upright containers, and no obvious deep interpenetration.</small></div>
+</div>
+<p>Different tasks use different subsets. For <code>adjust_bottle</code>, the correct gripper must contact and lift the bottle, keep its head within roughly 20° of vertical, and maintain those conditions for about 0.5 seconds with bounded pose drift. For <code>pick_dual_bottles</code>, each arm must grasp the correct bottle, both bottles must leave the table within the allowed time window, and the dual hold must remain stable. For <code>shake_bottle_horizontally</code>, commanded oscillations do not count unless the bottle's long axis completes real horizontal crossings.</p>
+<p>Diagnostic fields explain why a predicate failed, but only predicates used in the final Boolean return define success. A log field named <code>contact</code> or <code>lifted</code> is not independently sufficient.</p>
+
+<h2 id="setup">5. Experimental Setup and Results Across 50 Tasks</h2>
+<p>The experiment covers all 50 official RoboTwin tasks and uses the first 20 seeds from the official 50-seed list, giving 20 rollouts per task and 1,000 rollouts overall. For each task, one policy artifact selected after RSI development was frozen before evaluation, and Origin and Semantic evaluated the same rollout.</p>
+<p>Semantic reported 182 successful rollouts, Origin reported 164, and both were true on the same seed 124 times. The 18-rollout difference measures evaluator disagreement, not a policy improvement.</p>
+<section class="results-dashboard" data-results-dashboard hidden aria-labelledby="results-dashboard-title">
+  <header class="dashboard-header">
+    <div><span class="eyebrow">Evaluation atlas</span><h3 id="results-dashboard-title">Where do the evaluators disagree?</h3></div>
+    <p>Explore task-level successes on a shared 0–20 scale. The overview partitions all 1,000 rollouts; the chart compares task aggregates.</p>
+  </header>
+  <div class="dashboard-overview">
+    <figure class="dashboard-outcome-panel" aria-labelledby="outcome-title">
+      <div class="dashboard-panel-heading"><h4 id="outcome-title">Rollout outcomes</h4><span data-outcome-total>Paired evaluations</span></div>
+      <div class="outcome-track" data-outcome-track role="img" aria-label="Distribution of paired evaluator outcomes">
+        <span class="outcome-segment both" data-outcome-segment="both"></span>
+        <span class="outcome-segment semantic-only" data-outcome-segment="semantic-only"></span>
+        <span class="outcome-segment origin-only" data-outcome-segment="origin-only"></span>
+        <span class="outcome-segment neither" data-outcome-segment="neither"></span>
+      </div>
+      <figcaption class="outcome-key">
+        <span><i class="both"></i>Both <strong data-outcome-value="both">—</strong></span>
+        <span><i class="semantic-only"></i>Semantic only <strong data-outcome-value="semantic-only">—</strong></span>
+        <span><i class="origin-only"></i>Origin only <strong data-outcome-value="origin-only">—</strong></span>
+        <span><i class="neither"></i>Neither <strong data-outcome-value="neither">—</strong></span>
+      </figcaption>
+    </figure>
+    <div class="dashboard-summary" aria-label="Evaluator totals">
+      <div><span>Origin</span><strong data-summary-value="origin">—</strong><small>successful rollouts</small></div>
+      <div><span>Semantic</span><strong data-summary-value="semantic">—</strong><small>successful rollouts</small></div>
+      <div><span>Shared</span><strong data-summary-value="both">—</strong><small>accepted by both</small></div>
+    </div>
+  </div>
+  <div class="dashboard-controls">
+    <label class="dashboard-search"><span>Find a task</span><input type="search" placeholder="e.g. bottle or stack" autocomplete="off" data-results-search></label>
+    <fieldset class="dashboard-filters"><legend>Show</legend><div>
+      <button type="button" data-results-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-results-filter="semantic" aria-pressed="false">Semantic ↑</button>
+      <button type="button" data-results-filter="origin" aria-pressed="false">Origin ↑</button>
+      <button type="button" data-results-filter="equal" aria-pressed="false">Equal</button>
+      <button type="button" data-results-filter="none" aria-pressed="false">No successes</button>
+    </div></fieldset>
+    <label class="dashboard-sort"><span>Rank tasks</span><select data-results-sort><option value="gap">Largest disagreement</option><option value="semantic">Most Semantic successes</option><option value="origin">Most Origin successes</option><option value="task">Task name A–Z</option></select></label>
+  </div>
+  <div class="dashboard-chart-heading">
+    <div><span class="eyebrow">Task comparison · Δ = Semantic − Origin</span><p data-results-status aria-live="polite">Loading task results…</p></div>
+    <div class="result-legend"><span><i class="dot origin"></i>Origin</span><span><i class="dot semantic"></i>Semantic</span><span><i class="dot delta"></i>Both</span></div>
+  </div>
+  <div class="results-chart" data-results-chart aria-label="Task-level Origin and Semantic success counts"></div>
+  <p class="dashboard-empty" data-results-empty hidden>No tasks match this view. Try another search or filter.</p>
+</section>
+<noscript><p class="small-note">Interactive filters require JavaScript. The complete result table remains available below.</p></noscript>
+<details class="results-table-detail" data-results-table-detail>
+<summary><span>Complete 50-task data</span><small>Origin, Semantic, overlap, and difference</small></summary>
+<div class="table-wrap"><table class="semantic-results-table" id="results-table" data-results-table><thead><tr><th>Task</th><th>Origin</th><th>Semantic</th><th>Both</th><th>Δ</th></tr></thead><tbody>
+<tr data-task-row><td><code>adjust_bottle</code></td><td>1</td><td>8</td><td>0</td><td>+7</td></tr>
+<tr data-task-row><td><code>beat_block_hammer</code></td><td>1</td><td>0</td><td>0</td><td>-1</td></tr>
+<tr data-task-row><td><code>blocks_ranking_rgb</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>blocks_ranking_size</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>click_alarmclock</code></td><td>7</td><td>5</td><td>5</td><td>-2</td></tr>
+<tr data-task-row><td><code>click_bell</code></td><td>20</td><td>20</td><td>20</td><td>+0</td></tr>
+<tr data-task-row><td><code>dump_bin_bigbin</code></td><td>1</td><td>1</td><td>1</td><td>+0</td></tr>
+<tr data-task-row><td><code>grab_roller</code></td><td>1</td><td>17</td><td>1</td><td>+16</td></tr>
+<tr data-task-row><td><code>handover_block</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>handover_mic</code></td><td>0</td><td>1</td><td>0</td><td>+1</td></tr>
+<tr data-task-row><td><code>hanging_mug</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>lift_pot</code></td><td>10</td><td>3</td><td>1</td><td>-7</td></tr>
+<tr data-task-row><td><code>move_can_pot</code></td><td>2</td><td>10</td><td>2</td><td>+8</td></tr>
+<tr data-task-row><td><code>move_pillbottle_pad</code></td><td>3</td><td>3</td><td>3</td><td>+0</td></tr>
+<tr data-task-row><td><code>move_playingcard_away</code></td><td>0</td><td>4</td><td>0</td><td>+4</td></tr>
+<tr data-task-row><td><code>move_stapler_pad</code></td><td>6</td><td>7</td><td>6</td><td>+1</td></tr>
+<tr data-task-row><td><code>open_laptop</code></td><td>7</td><td>3</td><td>3</td><td>-4</td></tr>
+<tr data-task-row><td><code>open_microwave</code></td><td>12</td><td>12</td><td>12</td><td>+0</td></tr>
+<tr data-task-row><td><code>pick_diverse_bottles</code></td><td>0</td><td>4</td><td>0</td><td>+4</td></tr>
+<tr data-task-row><td><code>pick_dual_bottles</code></td><td>0</td><td>5</td><td>0</td><td>+5</td></tr>
+<tr data-task-row><td><code>place_a2b_left</code></td><td>1</td><td>1</td><td>1</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_a2b_right</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_bread_basket</code></td><td>8</td><td>7</td><td>7</td><td>-1</td></tr>
+<tr data-task-row><td><code>place_bread_skillet</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_burger_fries</code></td><td>3</td><td>3</td><td>3</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_can_basket</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_cans_plasticbox</code></td><td>12</td><td>11</td><td>11</td><td>-1</td></tr>
+<tr data-task-row><td><code>place_container_plate</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_dual_shoes</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_empty_cup</code></td><td>3</td><td>3</td><td>3</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_fan</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_mouse_pad</code></td><td>5</td><td>6</td><td>5</td><td>+1</td></tr>
+<tr data-task-row><td><code>place_object_basket</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>place_object_scale</code></td><td>4</td><td>2</td><td>2</td><td>-2</td></tr>
+<tr data-task-row><td><code>place_object_stand</code></td><td>6</td><td>5</td><td>5</td><td>-1</td></tr>
+<tr data-task-row><td><code>place_phone_stand</code></td><td>2</td><td>1</td><td>1</td><td>-1</td></tr>
+<tr data-task-row><td><code>place_shoe</code></td><td>1</td><td>4</td><td>1</td><td>+3</td></tr>
+<tr data-task-row><td><code>press_stapler</code></td><td>15</td><td>14</td><td>14</td><td>-1</td></tr>
+<tr data-task-row><td><code>put_bottles_dustbin</code></td><td>7</td><td>5</td><td>5</td><td>-2</td></tr>
+<tr data-task-row><td><code>put_object_cabinet</code></td><td>1</td><td>1</td><td>1</td><td>+0</td></tr>
+<tr data-task-row><td><code>rotate_qrcode</code></td><td>0</td><td>2</td><td>0</td><td>+2</td></tr>
+<tr data-task-row><td><code>scan_object</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>shake_bottle</code></td><td>8</td><td>4</td><td>4</td><td>-4</td></tr>
+<tr data-task-row><td><code>shake_bottle_horizontally</code></td><td>10</td><td>0</td><td>0</td><td>-10</td></tr>
+<tr data-task-row><td><code>stack_blocks_three</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>stack_blocks_two</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>stack_bowls_three</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>stack_bowls_two</code></td><td>0</td><td>0</td><td>0</td><td>+0</td></tr>
+<tr data-task-row><td><code>stamp_seal</code></td><td>0</td><td>2</td><td>0</td><td>+2</td></tr>
+<tr data-task-row><td><code>turn_switch</code></td><td>7</td><td>8</td><td>7</td><td>+1</td></tr>
+<tr class="summary-row"><th scope="row">Total</th><td><strong>164 / 1,000</strong></td><td><strong>182 / 1,000</strong></td><td><strong>124 / 1,000</strong></td><td><strong>+18 / 1,000</strong></td></tr>
+</tbody></table></div>
+</details>
+<p class="small-note">Δ is Semantic successes minus Origin successes for the same task. It describes evaluator output, not a gain in policy performance.</p>
+
+<ul class="result-insights">
+  <li><strong>Semantic is higher when Origin binds success to the wrong endpoint.</strong> Semantic exceeds Origin most clearly on <code>grab_roller</code> (17 vs. 1), <code>move_can_pot</code> (10 vs. 2), <code>adjust_bottle</code> (8 vs. 1), and <code>pick_dual_bottles</code> (5 vs. 0). In these tasks, the policy produced a physical state consistent with the instruction but did not reach the expert-specific endpoint, or Origin selected an unsuitable observable. Semantic measures table clearance, correct contact, synchronization, and stable support instead of simply lowering a threshold.</li>
+  <li><strong>Origin is higher when a transient state is mistaken for a complete behavior.</strong> Origin exceeds Semantic on <code>lift_pot</code> (10 vs. 3), <code>shake_bottle_horizontally</code> (10 vs. 0), <code>open_laptop</code> (7 vs. 3), <code>shake_bottle</code> (8 vs. 4), and <code>place_object_scale</code> (4 vs. 2). A height event, hinge ratio, or approximate geometric state can trigger Origin before contact attribution, action order, release, or stable hold is established.</li>
+  <li><strong>When both scores are low, the policy is the first place to look.</strong> <code>stack_blocks_two</code>, <code>blocks_ranking_rgb</code>, <code>blocks_ranking_size</code>, and several placement or stacking tasks remain near zero under both definitions. Their failures are more consistent with incomplete action chains: monocular reconstruction breaks after grasping, dual-arm actions become serialized, release and retreat checks fail, or the policy enters <code>safe_hold</code> without regrasping or replanning. Semantic-SR helps separate evaluator disagreement from genuine policy failure.</li>
+</ul>
+
+<h2 id="cases">6. Case Studies</h2>
+<h3><code>adjust_bottle</code>: a Semantic-only success</h3>
+<p>Origin succeeds on 1/20 seeds and Semantic on 8/20, with no seed accepted by both. On seed 000, the bottle reaches approximately 1.0055 m, its upright angle is approximately 5.08°, the correct gripper remains in contact, and the stable window reaches 129/125 steps. Its x position is approximately 0.007, so it never enters Origin's lateral target region. Seed 014 shows the opposite mismatch: x=0.1519 m and height=0.9143 m satisfy Origin, but the upright angle is 91.49°, leaving the bottle nearly horizontal. All 12 Semantic failures end with <code>upright=false</code>, which identifies righting after lift as the main policy bottleneck.</p>
+<figure class="evidence-video"><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.jpg" aria-label="adjust_bottle seed 000, accepted by Semantic and rejected by Origin"><source src="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.mp4">Open the recording</a>.</video><figcaption><strong>adjust_bottle · seed 000</strong><span>Origin=false · Semantic=true. The correct hand lifts and stabilizes the upright bottle, but the bottle does not cross Origin's fixed x threshold.</span></figcaption></figure>
+
+<h3><code>grab_roller</code>: measuring the physical state the instruction names</h3>
+<p>Origin succeeds on 1/20 seeds and Semantic on 17/20. Origin checks whether both gripper commands are closed and whether the roller center exceeds 0.8 m. Semantic instead verifies actual contact with both handles, at least about 2.5 cm of bottom clearance, and roughly 75 stable physics steps. On seed 000, the roller bottom is about 3.47 cm above the table and the dual grasp remains stable for 90/75 steps, even though the center does not cross Origin's threshold.</p>
+<figure class="evidence-video"><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/grab-roller-seed-000-semantic-only.jpg" aria-label="grab_roller seed 000, accepted by Semantic and rejected by Origin"><source src="/assets/robotwin-semantic/grab-roller-seed-000-semantic-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/grab-roller-seed-000-semantic-only.mp4">Open the recording</a>.</video><figcaption><strong>grab_roller · seed 000</strong><span>Origin=false · Semantic=true. Both hands contact the intended handles and lift the roller clear of the table, but its center height remains below Origin's fixed threshold.</span></figcaption></figure>
+
+<h3><code>pick_dual_bottles</code>: synchronization matters more than final height</h3>
+<p>Origin succeeds on 0/20 seeds and Semantic on 5/20. The successful Semantic seeds assign each bottle to the correct arm, lift both from the table within the allowed timing window, and maintain a stable overlapping hold. Their first-lift differences are 1 or 7 physics steps, with final stable windows of 100 to 121 steps. Other trajectories lift both bottles 39 to 49 steps apart, so the final image may look close while the synchronized dual-grasp requirement remains unsatisfied.</p>
+<figure class="evidence-video"><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/pick-dual-bottles-seed-005-semantic-only.jpg" aria-label="pick_dual_bottles seed 005, accepted by Semantic and rejected by Origin"><source src="/assets/robotwin-semantic/pick-dual-bottles-seed-005-semantic-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/pick-dual-bottles-seed-005-semantic-only.mp4">Open the recording</a>.</video><figcaption><strong>pick_dual_bottles · seed 005</strong><span>Origin=false · Semantic=true. The corresponding arms lift both bottles within the synchronization window and hold them stably, without completing Origin's terminal transport.</span></figcaption></figure>
+
+<h3><code>shake_bottle_horizontally</code>: a height event is not a shake</h3>
+<p>Origin succeeds on 10/20 seeds while Semantic succeeds on 0/20. Origin records whether the bottle center ever reaches a height threshold. Semantic requires a valid grasp, table clearance, stable lift, at least two horizontal crossings of the bottle's long axis with hysteresis, and a safe final hold. On most Origin-success seeds, <code>horizontal_crossings=0</code>. The generated policy counts commanded oscillations through <code>shake_index</code>, but it does not read actual crossings, contact, or stability before deciding whether the behavior is complete.</p>
+<figure class="evidence-video"><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.jpg" aria-label="shake_bottle_horizontally seed 004, accepted by Origin and rejected by Semantic"><source src="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.mp4">Open the recording</a>.</video><figcaption><strong>shake_bottle_horizontally · seed 004</strong><span>Origin=true · Semantic=false. The bottle reaches the height threshold, but the evaluator records no completed horizontal crossings.</span></figcaption></figure>
+
+<h3><code>stack_blocks_two</code>: evaluator changes cannot repair a missing action chain</h3>
+<p>Both Origin and Semantic score 0/20. On 14 seeds, held-object multi-view reconstruction stalls after the first grasp. The remaining trajectories fail during release, retreat, or low-altitude transport of the second block. Seed 000 is the only rollout to reach second-block transfer, but it still has about 6.4 cm of lateral error. The green block remains in the gripper, with no release, support relationship, or stable stack. This is a perception, planning, and recovery failure, not a reason to relax the evaluator.</p>
+<figure class="evidence-video"><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.jpg" aria-label="stack_blocks_two seed 000, rejected by both Origin and Semantic"><source src="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.mp4">Open the recording</a>.</video><figcaption><strong>stack_blocks_two · seed 000</strong><span>Origin=false · Semantic=false. The policy reaches the second-block transfer stage but never releases the block into a stable support chain.</span></figcaption></figure>
+
+<h2 id="implications">7. Implications for RSI and Benchmark Design</h2>
+<ul>
+  <li><strong>Monocular geometry is a recurring single point of failure.</strong> After grasping, gripper occlusion makes object edges, axes, dimensions, and relative pose difficult to reconstruct reliably.</li>
+  <li><strong>Synchronized dual-arm tasks cannot be reduced to serial checks.</strong> Lifting one object and then the other may produce a plausible final frame while missing the required timing window.</li>
+  <li><strong>RGB motion is not a contact-control loop.</strong> An object rising in the image does not prove correct fingertip contact, table clearance, or freedom from gripper slip.</li>
+  <li><strong>Failure recovery needs state-aware replanning.</strong> Closing the gripper and entering <code>safe_hold</code> cannot recover bottle righting, resynchronize a dual lift, or finish a stack.</li>
+  <li><strong>One task specification should generate the prompt, expert trajectory, and evaluator.</strong> This avoids describing one goal, demonstrating another route, and measuring a third endpoint.</li>
+</ul>
+<p>Future reports should publish Origin, Semantic, Both, Origin-only, and Semantic-only together, then connect representative seeds to terminal JSON, predicate diagnostics, and video. Semantic-SR does not complete the control task for the policy. It tells us whether the next repair belongs in perception, planning, contact control, timing, or recovery.</p>
+
+<h2 id="conclusion">8. Conclusion</h2>
+<p>This 50-task experiment should not be compressed into one “best success rate.” Origin-SR preserves historical comparability. Semantic-SR asks whether a zero-shot policy actually completed the instruction. Their disagreement is part of the result because it reveals where benchmark endpoints, language, and physical behavior diverge.</p>
+<p>This Semantic Fix has been open-sourced, but gaps and omissions are inevitable. We welcome the community to help identify shortcomings, refine the predicates, and improve the evaluation together.</p>
+
+<div class="reference-list" role="doc-bibliography" aria-label="References">
+  <p><strong>References</strong></p>
+  <ol>
+    <li>Tianxing Chen et al., <a href="https://arxiv.org/abs/2506.18088" target="_blank" rel="noopener noreferrer">“RoboTwin 2.0: A Scalable Data Generator and Benchmark with Strong Domain Randomization for Robust Bimanual Robotic Manipulation”</a>, 2025.</li>
+    <li><a href="https://github.com/RoboTwin-Platform/RoboTwin/issues/475" target="_blank" rel="noopener noreferrer">RoboTwin Issue #475: “Language instructions can conflict with expert trajectory order and arm assignments.”</a></li>
+    <li><a href="https://github.com/RoboTwin-Platform/RoboTwin/issues/493" target="_blank" rel="noopener noreferrer">RoboTwin Issue #493: “Evaluation Success May Be Triggered by Transient States Without Stability Verification.”</a></li>
+    <li>Zero-WAM, <a href="https://github.com/robbyant-research/Zero-WAM/blob/main/INSTALL.md#zero-wam-evaluation-protocol" target="_blank" rel="noopener noreferrer">RoboTwin evaluation protocol and revised success criteria</a>.</li>
+  </ol>
+</div>

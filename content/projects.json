@@ -90,5 +90,46 @@
       }
     ],
     "home_title": "Real-world experiments"
+  },
+  {
+    "slug": "robotwin-semantic-success",
+    "name": "RSI and semantic success in RoboTwin 2.0",
+    "short_name": "RoboTwin 2.0 semantic evaluation",
+    "environment": "Simulation",
+    "number": "03",
+    "description": "Can a coding agent turn RoboTwin 2.0 instructions into reusable robot policies? We freeze one artifact per task, then compare native Origin success with language-aligned Semantic success on the same 1000 rollouts.",
+    "image": "robotwin-domain-randomization.png",
+    "image_alt": "RoboTwin 2.0 task scenes shown under fixed and randomized visual conditions.",
+    "mode": "RSI policy development → dual-metric evaluation",
+    "metrics": [
+      {
+        "value": "50",
+        "label": "tasks in the RSI campaign"
+      },
+      {
+        "value": "164 / 182",
+        "label": "Origin / Semantic successes"
+      },
+      {
+        "value": "124",
+        "label": "same-seed successes under both"
+      }
+    ],
+    "results_path": "/posts/robotwin-rsi-semantic-success/",
+    "article_results_path": "/projects/robotwin-semantic-success/",
+    "summary": "RSI uses evaluator feedback to develop one policy artifact for each of 50 RoboTwin 2.0 tasks. Those artifacts are then evaluated separately on 20 seeds per task: the native Origin checker preserves benchmark compatibility, while the Semantic checker tests language-aligned physical predicates on the same rollout.",
+    "findings": [
+      "The paired snapshot contains 50 tasks × 20 seeds = 1000 terminal rollouts: Origin records 164 successes and Semantic records 182.",
+      "The two checkers agree on 124 same-seed successes; the remaining disagreement is task-specific and must not be read as a policy improvement by itself.",
+      "The snapshot records a nonzero task-level return code for stack_bowls_three, so terminal artifact completeness and process status remain separate claims."
+    ],
+    "limits": "All aggregate evaluation numbers are a static snapshot from September 24, 2026. The final counts are read from terminal JSON booleans; they do not imply that every task process returned zero, and development labels must not be read as Origin-SR or Semantic-SR.",
+    "evidence": [
+      {
+        "label": "Read the progress snapshot and design note",
+        "path": "/posts/robotwin-rsi-semantic-success/"
+      }
+    ],
+    "home_title": "RoboTwin semantic success"
   }
 ]

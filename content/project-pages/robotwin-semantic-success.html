@@ -1,0 +1,95 @@
+<header class="wrap semantic-project-hero">
+  <a class="back-link" href="/projects/">← All projects</a>
+  <div class="semantic-project-hero-grid">
+    <div>
+      <div class="eyebrow">Project 03 / RoboTwin 2.0 / Simulation</div>
+      <h1>Origin meets Semantic.<br><em>Different meanings of success.</em></h1>
+    </div>
+    <div class="semantic-project-intro">
+      <p>One RSI-developed policy artifact is frozen for each task. Every rollout is then judged twice: once by RoboTwin's native Origin checker and once by a language-aligned Semantic checker.</p>
+      <p>The comparison isolates the evaluator. It does not compare two policies, and an 18-rollout difference is evaluator disagreement—not policy improvement.</p>
+      <div class="project-actions"><a class="button dark" href="/posts/robotwin-rsi-semantic-success/">Read the full study <span aria-hidden="true">↗</span></a><span class="mode">50 tasks · 20 seeds per task · 1,000 paired rollouts</span></div>
+    </div>
+  </div>
+</header>
+
+<section class="wrap semantic-project-comparison" aria-labelledby="comparison-title">
+  <div class="semantic-project-section-head"><div><span class="eyebrow">The headline result</span><h2 id="comparison-title">Same rollouts.<br>Two scorecards.</h2></div><p>Both evaluators read the terminal evidence from the same frozen policy runs, but they ask different questions about what counts as completion.</p></div>
+  <div class="semantic-project-score-grid">
+    <article class="semantic-project-score origin">
+      <div><span class="eyebrow">Origin-SR</span><span class="score-rate">16.4%</span></div>
+      <strong>164<small> / 1,000</small></strong>
+      <div class="score-track" aria-hidden="true"><span style="width:16.4%"></span></div>
+      <p>The native RoboTwin checker. It preserves historical comparability, including task predicates that may encode an expert-specific endpoint.</p>
+    </article>
+    <div class="semantic-project-versus" aria-label="Semantic records 18 more successful rollouts than Origin"><span>same<br>rollouts</span><strong>+18</strong><small>Semantic − Origin</small></div>
+    <article class="semantic-project-score semantic">
+      <div><span class="eyebrow">Semantic-SR</span><span class="score-rate">18.2%</span></div>
+      <strong>182<small> / 1,000</small></strong>
+      <div class="score-track" aria-hidden="true"><span style="width:18.2%"></span></div>
+      <p>A complementary checker built from role, contact, geometry, trajectory, stability, and safety evidence aligned with the task language.</p>
+    </article>
+  </div>
+</section>
+
+<section class="wrap semantic-project-outcomes" aria-labelledby="outcomes-title">
+  <div class="semantic-project-section-head"><div><span class="eyebrow">Paired outcomes</span><h2 id="outcomes-title">Agreement is only part of the story.</h2></div><p>The aggregate totals hide which exact seeds switch label. Splitting all 1,000 paired judgments makes the disagreement visible.</p></div>
+  <div class="outcome-strip" role="img" aria-label="Of 1,000 rollouts: 124 pass both evaluators, 58 pass only Semantic, 40 pass only Origin, and 778 pass neither."><span class="both" style="width:12.4%"></span><span class="semantic-only" style="width:5.8%"></span><span class="origin-only" style="width:4%"></span><span class="neither" style="width:77.8%"></span></div>
+  <div class="outcome-grid">
+    <article class="both"><span class="eyebrow">Both pass</span><strong>124</strong><p>The same seed satisfies both definitions.</p></article>
+    <article class="semantic-only"><span class="eyebrow">Semantic only</span><strong>58</strong><p>Language-aligned evidence passes; Origin does not.</p></article>
+    <article class="origin-only"><span class="eyebrow">Origin only</span><strong>40</strong><p>The native predicate fires without the full Semantic chain.</p></article>
+    <article class="neither"><span class="eyebrow">Neither passes</span><strong>778</strong><p>Both evaluators reject the rollout.</p></article>
+  </div>
+  <p class="semantic-project-note">The four cells are derived from the paired totals: 124 both, 182 − 124 = 58 Semantic-only, 164 − 124 = 40 Origin-only, and 778 neither. The split describes evaluator behavior; it does not create new robot behavior.</p>
+</section>
+
+<section class="semantic-project-divergence" aria-labelledby="divergence-title">
+  <div class="wrap">
+    <div class="semantic-project-section-head"><div><span class="eyebrow">Different strengths</span><h2 id="divergence-title">The gap changes direction by task.</h2></div><p>A higher overall Semantic total does not mean Semantic is uniformly more permissive. Some task definitions recover language-valid behavior; others reject transient or incomplete behavior accepted by Origin.</p></div>
+    <div class="divergence-columns">
+      <article class="divergence-panel semantic-leads">
+        <div class="divergence-panel-head"><span class="eyebrow">Semantic identifies more successes</span><strong>Language-valid states</strong></div>
+        <div class="task-delta"><div><code>grab_roller</code><span>1 → 17</span></div><div class="delta-track"><span style="width:80%"></span></div><small>+16</small></div>
+        <div class="task-delta"><div><code>move_can_pot</code><span>2 → 10</span></div><div class="delta-track"><span style="width:40%"></span></div><small>+8</small></div>
+        <div class="task-delta"><div><code>adjust_bottle</code><span>1 → 8</span></div><div class="delta-track"><span style="width:35%"></span></div><small>+7</small></div>
+        <div class="task-delta"><div><code>pick_dual_bottles</code><span>0 → 5</span></div><div class="delta-track"><span style="width:25%"></span></div><small>+5</small></div>
+      </article>
+      <article class="divergence-panel origin-leads">
+        <div class="divergence-panel-head"><span class="eyebrow">Origin identifies more successes</span><strong>Incomplete chains exposed</strong></div>
+        <div class="task-delta"><div><code>shake_bottle_horizontally</code><span>10 → 0</span></div><div class="delta-track"><span style="width:50%"></span></div><small>−10</small></div>
+        <div class="task-delta"><div><code>lift_pot</code><span>10 → 3</span></div><div class="delta-track"><span style="width:35%"></span></div><small>−7</small></div>
+        <div class="task-delta"><div><code>open_laptop</code><span>7 → 3</span></div><div class="delta-track"><span style="width:20%"></span></div><small>−4</small></div>
+        <div class="task-delta"><div><code>shake_bottle</code><span>8 → 4</span></div><div class="delta-track"><span style="width:20%"></span></div><small>−4</small></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="wrap semantic-project-flow" aria-labelledby="flow-title">
+  <div class="semantic-project-section-head"><div><span class="eyebrow">Evaluation protocol</span><h2 id="flow-title">Develop once. Judge twice.</h2></div><p>RSI may use evaluator feedback while developing code. The boundary becomes strict before measurement: freeze one artifact, run new seeds, and apply both definitions to the same rollout.</p></div>
+  <ol>
+    <li><span>01</span><div><strong>Generate</strong><p>Write a task policy from the instruction and available interfaces.</p></div></li>
+    <li><span>02</span><div><strong>Iterate</strong><p>Use development feedback to revise the policy artifact.</p></div></li>
+    <li><span>03</span><div><strong>Freeze</strong><p>Select one artifact and stop coding-agent edits.</p></div></li>
+    <li><span>04</span><div><strong>Evaluate</strong><p>Run the same frozen policy on new seeds and record both Booleans.</p></div></li>
+  </ol>
+</section>
+
+<section class="semantic-project-evidence" aria-labelledby="evidence-title">
+  <div class="wrap">
+    <div class="semantic-project-section-head"><div><span class="eyebrow">Rollout evidence</span><h2 id="evidence-title">See why a label changes.</h2></div><p>Each clip represents one paired judgment. Together they show a Semantic-only completion, an Origin-only partial behavior, and a failure recognized by both.</p></div>
+    <div class="semantic-project-video-grid">
+      <figure><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.jpg" aria-label="adjust_bottle seed 000, Semantic-only success"><source src="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/adjust-bottle-seed-000-semantic-only.mp4">Open the recording</a>.</video><figcaption><span>Semantic only</span><strong><code>adjust_bottle</code> · seed 000</strong><p>The correct hand lifts and stabilizes the upright bottle without crossing Origin's fixed x threshold.</p></figcaption></figure>
+      <figure><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.jpg" aria-label="shake_bottle_horizontally seed 004, Origin-only success"><source src="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/shake-bottle-horizontal-seed-004-origin-only.mp4">Open the recording</a>.</video><figcaption><span>Origin only</span><strong><code>shake_bottle_horizontally</code> · seed 004</strong><p>The bottle reaches Origin's height threshold but completes no horizontal crossings.</p></figcaption></figure>
+      <figure><video controls playsinline preload="metadata" poster="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.jpg" aria-label="stack_blocks_two seed 000, rejected by both evaluators"><source src="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.mp4" type="video/mp4">Your browser cannot play this video. <a href="/assets/robotwin-semantic/stack-blocks-two-seed-000-both-fail.mp4">Open the recording</a>.</video><figcaption><span>Neither passes</span><strong><code>stack_blocks_two</code> · seed 000</strong><p>The rollout never establishes the required stable stack, so both definitions reject it.</p></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="wrap semantic-project-reading" aria-labelledby="reading-title">
+  <div><span class="eyebrow">How to read the result</span><h2 id="reading-title">A semantic fix is an audit layer, not a renamed benchmark score.</h2></div>
+  <div><p>Origin-SR remains visible for historical comparison. Semantic-SR asks whether the instruction was completed through task-relevant physical evidence. The useful signal is not simply which number is larger, but where the labels diverge and why.</p><p>The semantic fix is open source, but task predicates can still contain omissions. We welcome the community to inspect the definitions, challenge edge cases, and improve them together.</p><a class="button dark" href="/posts/robotwin-rsi-semantic-success/">Explore all 50 tasks <span aria-hidden="true">↗</span></a></div>
+</section>
+
+{{RELATED_SECTION}}

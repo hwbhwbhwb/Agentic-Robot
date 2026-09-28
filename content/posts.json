@@ -64,5 +64,30 @@
     ],
     "author_note": "* Equal contribution",
     "citation_key": "wang2026agentsrealworld"
+  },
+  {
+    "slug": "robotwin-rsi-semantic-success",
+    "title": "When Success Means the Task: RSI and Semantic Evaluation in RoboTwin 2.0",
+    "subtitle": "Agent-written robot policies in RoboTwin 2.0: develop with RSI feedback, freeze one artifact per task, then evaluate each rollout with Origin and Semantic success.",
+    "excerpt": "A 50-task RSI campaign that separates policy development from frozen-policy evaluation, then reports native Origin success beside language-aligned Semantic success.",
+    "date": "2026-09-24",
+    "category": "RoboTwin 2.0",
+    "projects": [
+      "robotwin-semantic-success"
+    ],
+    "image": "robotwin-domain-randomization.png",
+    "image_alt": "RoboTwin 2.0 task scenes shown under fixed and randomized visual conditions.",
+    "image_caption": "RoboTwin 2.0 · fixed and domain-randomized task scenes",
+    "home_video": "robotwin-semantic/adjust-bottle-seed-000-semantic-only-hd.mp4",
+    "home_poster": "robotwin-semantic/adjust-bottle-seed-000-semantic-only-hd.jpg",
+    "home_video_label": "Enhanced 720p video of adjust_bottle seed 000: the correct arm lifts and stabilizes the upright bottle, producing a Semantic-only success.",
+    "home_video_caption": "adjust_bottle · seed 000 · Semantic-only success · 720p enhanced",
+    "body": "robotwin-rsi-semantic-success.html",
+    "article_media": false,
+    "results_path": "/projects/robotwin-semantic-success/",
+    "promote_results": false,
+    "image_style": "photo",
+    "authors": [],
+    "citation_key": "huang2026robotwinsemantic"
   }
 ]
